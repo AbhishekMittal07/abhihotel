@@ -1,4 +1,4 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -90,7 +90,7 @@
             </div>
             @endif
             <form method="post" action="{{ url('/send-email') }}">
-            @csrf
+            {{csrf_field()}}
                 <h3>Drop Us a Message</h3>
                <div class="row">
                     <div class="col-md-6">

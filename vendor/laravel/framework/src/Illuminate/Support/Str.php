@@ -2,11 +2,7 @@
 
 namespace Illuminate\Support;
 
-use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidFactory;
 use Illuminate\Support\Traits\Macroable;
-use Ramsey\Uuid\Generator\CombGenerator;
-use Ramsey\Uuid\Codec\TimestampFirstCombCodec;
 
 class Str
 {
@@ -153,7 +149,7 @@ class Str
      */
     public static function is($pattern, $value)
     {
-        $patterns = Arr::wrap($pattern);
+        $patterns = is_array($pattern) ? $pattern : (array) $pattern;
 
         if (empty($patterns)) {
             return false;
@@ -278,22 +274,6 @@ class Str
     public static function plural($value, $count = 2)
     {
         return Pluralizer::plural($value, $count);
-    }
-
-    /**
-     * Pluralize the last word of an English, studly caps case string.
-     *
-     * @param  string  $value
-     * @param  int     $count
-     * @return string
-     */
-    public static function pluralStudly($value, $count = 2)
-    {
-        $parts = preg_split('/(.)(?=[A-Z])/u', $value, -1, PREG_SPLIT_DELIM_CAPTURE);
-
-        $lastWord = array_pop($parts);
-
-        return implode('', $parts).self::plural($lastWord, $count);
     }
 
     /**
@@ -428,15 +408,15 @@ class Str
      *
      * @param  string  $title
      * @param  string  $separator
-     * @param  string|null  $language
+     * @param  string  $language
      * @return string
      */
     public static function slug($title, $separator = '-', $language = 'en')
     {
-        $title = $language ? static::ascii($title, $language) : $title;
+        $title = static::ascii($title, $language);
 
         // Convert all dashes/underscores into separator
-        $flip = $separator === '-' ? '_' : '-';
+        $flip = $separator == '-' ? '_' : '-';
 
         $title = preg_replace('!['.preg_quote($flip).']+!u', $separator, $title);
 
@@ -444,7 +424,7 @@ class Str
         $title = str_replace('@', $separator.'at'.$separator, $title);
 
         // Remove all characters that are not the separator, letters, numbers, or whitespace.
-        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s]+!u', '', static::lower($title));
+        $title = preg_replace('![^'.preg_quote($separator).'\pL\pN\s]+!u', '', mb_strtolower($title));
 
         // Replace all separator characters and whitespace by a single separator
         $title = preg_replace('!['.preg_quote($separator).'\s]+!u', $separator, $title);
@@ -535,37 +515,6 @@ class Str
     public static function ucfirst($string)
     {
         return static::upper(static::substr($string, 0, 1)).static::substr($string, 1);
-    }
-
-    /**
-     * Generate a UUID (version 4).
-     *
-     * @return \Ramsey\Uuid\UuidInterface
-     */
-    public static function uuid()
-    {
-        return Uuid::uuid4();
-    }
-
-    /**
-     * Generate a time-ordered UUID (version 4).
-     *
-     * @return \Ramsey\Uuid\UuidInterface
-     */
-    public static function orderedUuid()
-    {
-        $factory = new UuidFactory;
-
-        $factory->setRandomGenerator(new CombGenerator(
-            $factory->getRandomGenerator(),
-            $factory->getNumberConverter()
-        ));
-
-        $factory->setCodec(new TimestampFirstCombCodec(
-            $factory->getUuidBuilder()
-        ));
-
-        return $factory->uuid4();
     }
 
     /**
@@ -722,17 +671,9 @@ class Str
                     ['х', 'Х', 'щ', 'Щ', 'ъ', 'Ъ', 'ь', 'Ь'],
                     ['h', 'H', 'sht', 'SHT', 'a', 'А', 'y', 'Y'],
                 ],
-                'da' => [
-                    ['æ', 'ø', 'å', 'Æ', 'Ø', 'Å'],
-                    ['ae', 'oe', 'aa', 'Ae', 'Oe', 'Aa'],
-                ],
                 'de' => [
                     ['ä',  'ö',  'ü',  'Ä',  'Ö',  'Ü'],
                     ['ae', 'oe', 'ue', 'AE', 'OE', 'UE'],
-                ],
-                'ro' => [
-                    ['ă', 'â', 'î', 'ș', 'ț', 'Ă', 'Â', 'Î', 'Ș', 'Ț'],
-                    ['a', 'a', 'i', 's', 't', 'A', 'A', 'I', 'S', 'T'],
                 ],
             ];
         }
