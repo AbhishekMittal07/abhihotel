@@ -4,7 +4,6 @@ namespace Illuminate\View\Compilers;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 class BladeCompiler extends Compiler implements CompilerInterface
 {
@@ -13,7 +12,6 @@ class BladeCompiler extends Compiler implements CompilerInterface
         Concerns\CompilesComponents,
         Concerns\CompilesConditionals,
         Concerns\CompilesEchos,
-        Concerns\CompilesHelpers,
         Concerns\CompilesIncludes,
         Concerns\CompilesInjections,
         Concerns\CompilesJson,
@@ -118,17 +116,9 @@ class BladeCompiler extends Compiler implements CompilerInterface
         }
 
         if (! is_null($this->cachePath)) {
-            $contents = $this->compileString(
-                $this->files->get($this->getPath())
-            );
+            $contents = $this->compileString($this->files->get($this->getPath()));
 
-            if (! empty($this->getPath())) {
-                $contents .= "\n<?php /* {$this->getPath()} */ ?>";
-            }
-
-            $this->files->put(
-                $this->getCompiledPath($this->getPath()), $contents
-            );
+            $this->files->put($this->getCompiledPath($this->getPath()), $contents);
         }
     }
 
@@ -281,7 +271,7 @@ class BladeCompiler extends Compiler implements CompilerInterface
      */
     protected function parseToken($token)
     {
-        [$id, $content] = $token;
+        list($id, $content) = $token;
 
         if ($id == T_INLINE_HTML) {
             foreach ($this->compilers as $type) {
@@ -405,13 +395,13 @@ class BladeCompiler extends Compiler implements CompilerInterface
         $this->conditions[$name] = $callback;
 
         $this->directive($name, function ($expression) use ($name) {
-            return $expression !== ''
+            return $expression
                     ? "<?php if (\Illuminate\Support\Facades\Blade::check('{$name}', {$expression})): ?>"
                     : "<?php if (\Illuminate\Support\Facades\Blade::check('{$name}')): ?>";
         });
 
         $this->directive('else'.$name, function ($expression) use ($name) {
-            return $expression !== ''
+            return $expression
                 ? "<?php elseif (\Illuminate\Support\Facades\Blade::check('{$name}', {$expression})): ?>"
                 : "<?php elseif (\Illuminate\Support\Facades\Blade::check('{$name}')): ?>";
         });
@@ -434,46 +424,6 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Register a component alias directive.
-     *
-     * @param  string  $path
-     * @param  string  $alias
-     * @return void
-     */
-    public function component($path, $alias = null)
-    {
-        $alias = $alias ?: Arr::last(explode('.', $path));
-
-        $this->directive($alias, function ($expression) use ($path) {
-            return $expression
-                        ? "<?php \$__env->startComponent('{$path}', {$expression}); ?>"
-                        : "<?php \$__env->startComponent('{$path}'); ?>";
-        });
-
-        $this->directive('end'.$alias, function ($expression) {
-            return '<?php echo $__env->renderComponent(); ?>';
-        });
-    }
-
-    /**
-     * Register an include alias directive.
-     *
-     * @param  string  $path
-     * @param  string  $alias
-     * @return void
-     */
-    public function include($path, $alias = null)
-    {
-        $alias = $alias ?: Arr::last(explode('.', $path));
-
-        $this->directive($alias, function ($expression) use ($path) {
-            $expression = $this->stripParentheses($expression) ?: '[]';
-
-            return "<?php echo \$__env->make('{$path}', {$expression}, \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>";
-        });
-    }
-
-    /**
      * Register a handler for custom directives.
      *
      * @param  string  $name
@@ -482,10 +432,6 @@ class BladeCompiler extends Compiler implements CompilerInterface
      */
     public function directive($name, callable $handler)
     {
-        if (! preg_match('/^\w+(?:::\w+)?$/x', $name)) {
-            throw new InvalidArgumentException("The directive name [{$name}] is not valid. Directive names must only contain alphanumeric characters and underscores.");
-        }
-
         $this->customDirectives[$name] = $handler;
     }
 
@@ -511,22 +457,12 @@ class BladeCompiler extends Compiler implements CompilerInterface
     }
 
     /**
-     * Set the "echo" format to double encode entities.
+     * Set the echo format to double encode entities.
      *
      * @return void
      */
-    public function withDoubleEncoding()
+    public function doubleEncode()
     {
         $this->setEchoFormat('e(%s, true)');
-    }
-
-    /**
-     * Set the "echo" format to not double encode entities.
-     *
-     * @return void
-     */
-    public function withoutDoubleEncoding()
-    {
-        $this->setEchoFormat('e(%s, false)');
     }
 }
